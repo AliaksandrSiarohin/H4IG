@@ -1,0 +1,30 @@
+# Main parameters
+dataset: 'chunk_rectangle'
+with_labels: False
+
+
+# Architecre Parameters
+
+generator_params:
+  block_expansion: 64
+  dim_z: 128
+
+discriminator_params:
+  block_expansion: 64
+
+# Train parameters
+num_epochs: 320
+generator_bs: 64
+discriminator_bs: 64
+num_discriminator_updates: 1
+num_workers: 4
+
+lr_generator: 2.0e-4
+lr_discriminator: 2.0e-4
+b1_generator: 0
+b2_generator: 0.9
+b1_discriminator: 0
+b2_discriminator: 0.9
+
+eval_frequency: 64
+samples_evaluation: 50000
