@@ -1,5 +1,12 @@
 # Main parameters
 dataset: 'chunk_rectangle'
+dataset_params:
+  random_pos: False
+  random_rot: True
+  random_flip: False
+  random_color: True
+
+
 with_labels: False
 
 
@@ -10,6 +17,10 @@ generator_params:
   dim_z: 128
 
 discriminator_params:
+  shift_invariance: False
+  rot_invariance: True
+  flip_invariance: False
+  sn: True
   block_expansion: 64
 
 # Train parameters

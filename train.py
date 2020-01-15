@@ -9,11 +9,11 @@ from torchvision import transforms as T
 from tqdm import tqdm
 
 from chunk_rectangle_dataset import ChunkRectangleDataset
-from networks import DCGenerator, DCDiscriminator, ShiftInvariantDiscriminator
+from networks import DCGenerator, DCDiscriminator
 from sync_batchnorm import DataParallelWithCallback
 
 
-def get_dataset(dataset):
+def get_dataset(dataset, dataset_params):
     assert dataset in ['cifar10', 'cifar100', 'chunk_rectangle']
     train_transform = T.Compose([
         T.ToTensor(),
@@ -22,9 +22,10 @@ def get_dataset(dataset):
     if dataset == 'cifar10':
         return torchvision.datasets.CIFAR10(root='cifar_data', train=True, download=True, transform=train_transform), 10
     elif dataset == 'cifar100':
-        return torchvision.datasets.CIFAR100(root='cifar_data', train=True, download=True, transform=train_transform), 100
+        return torchvision.datasets.CIFAR100(root='cifar_data', train=True, download=True,
+                                             transform=train_transform), 100
     elif dataset == 'chunk_rectangle':
-        return ChunkRectangleDataset(random_rot=False, random_flip=False, transform=train_transform), 1
+        return ChunkRectangleDataset(transform=train_transform, **dataset_params), 1
 
 
 class Trainer:
@@ -33,7 +34,7 @@ class Trainer:
         self.logger = logger
         self.device_ids = device_ids
 
-        self.dataset, n_classes = get_dataset(config['dataset'])
+        self.dataset, n_classes = get_dataset(config['dataset'], config['dataset_params'])
 
         if self.config['with_labels']:
             self.config['generator_params']['n_classes'] = n_classes
@@ -42,7 +43,6 @@ class Trainer:
         else:
             self.config['generator_params']['n_classes'] = None
             self.config['discriminator_params']['n_classes'] = None
-
 
         self.restore(checkpoint)
 
@@ -61,7 +61,7 @@ class Trainer:
                                                     betas=(self.config['b1_generator'], self.config['b2_generator']),
                                                     weight_decay=0, eps=1e-8)
 
-        self.discriminator = ShiftInvariantDiscriminator(**self.config['discriminator_params'])
+        self.discriminator = DCDiscriminator(**self.config['discriminator_params'])
         self.discriminator = DataParallelWithCallback(self.discriminator, device_ids=self.device_ids)
         self.optimizer_discriminator = torch.optim.Adam(params=self.discriminator.parameters(),
                                                         lr=self.config['lr_discriminator'],
@@ -95,9 +95,11 @@ class Trainer:
     def train(self):
         loader = DataLoader(self.dataset, batch_size=self.config['discriminator_bs'], shuffle=False,
                             drop_last=True, num_workers=self.config['num_workers'])
-        noise = torch.zeros((max(self.config['generator_bs'], self.config['discriminator_bs']), self.config['generator_params']['dim_z'])).cuda()
+        noise = torch.zeros((max(self.config['generator_bs'], self.config['discriminator_bs']),
+                             self.config['generator_params']['dim_z'])).cuda()
         if self.config['with_labels']:
-            labels_fake = torch.zeros(max(self.config['generator_bs'], self.config['discriminator_bs'])).type(torch.LongTensor).cuda()
+            labels_fake = torch.zeros(max(self.config['generator_bs'], self.config['discriminator_bs'])).type(
+                torch.LongTensor).cuda()
         else:
             labels_fake = None
 

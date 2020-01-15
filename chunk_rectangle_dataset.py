@@ -27,7 +27,7 @@ def draw_object(color=(128, 128, 128), rot_angle=0, flip=False, pos=(8, 8),
     if flip:
         img = img[::-1]
 
-    return rotate(img, rot_angle)
+    return rotate(img, rot_angle).copy()
 
 
 class ChunkRectangleDataset(Dataset):
